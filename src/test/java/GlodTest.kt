@@ -21,7 +21,7 @@ class GlodTest() :TestInterface<Glod> {
 
     @Test
     override fun detailTest() {
-        val detailContent = t.detailContent(mutableListOf("133698"))
+        val detailContent = t.detailContent(mutableListOf("139263"))
         println(detailContent)
         AssertUtil.assertResult(detailContent)
     }

@@ -18,11 +18,14 @@ import org.jsoup.Jsoup
 import java.util.*
 
 class Glod:Spider() {
-    private val host = Util.base64Decode("aHR0cHM6Ly93d3cuY2Zrajg2LmNvbS8=")
+    private val host = Util.base64Decode("aHR0cHM6Ly9obnl0eGouY29tLw==")
+
+//    private val detailUrl = host + "api/mw-movie/anonymous/video/detail?id=%s"
 
     private val detailUrl = host + "api/mw-movie/anonymous/video/detail?id=%s"
 
-    private val epUrl = "/api/mw-movie/anonymous/v1/video/episode/url?clientType=1&id=%s&nid=%s"
+//    private val epUrl = "/api/mw-movie/anonymous/v1/video/episode/url?clientType=1&id=%s&nid=%s"
+    private val epUrl = "/api/mw-movie/anonymous/v2/video/episode/url?clientType=1&id=%s&nid=%s"
 
     private val deviceId = cn.hutool.core.lang.UUID.randomUUID().toString()
 
@@ -103,9 +106,18 @@ class Glod:Spider() {
             SpiderDebug.log("glod 获取播放链接失败:$string")
             return Result.error("获取播放链接失败")
         }
-        val url = parse.get("data").asJsonObject.get("playUrl").asString
-        val content = OkHttp.string(url, webHeaders)
-        return Result.get().url(ProxyVideo.buildCommonProxyUrl(url, webHeaders)).string()
+//        val url = parse.get("data").asJsonObject.get("playUrl").asString
+        val dataList = parse.get("data").asJsonObject.getAsJsonArray("list")
+        if (dataList.size() == 0) {
+            SpiderDebug.log("glod 获取播放链接失败:播放列表为空")
+            return Result.error("获取播放链接失败")
+        }
+        // 获取第一个播放链接（或根据需要选择其他链接）
+        val playItem = dataList.get(0).asJsonObject
+        val url = playItem.get("url").asString
+//        val content = OkHttp.string(url, webHeaders)
+//        return Result.get().url(ProxyVideo.buildCommonProxyUrl(url, webHeaders)).string()
+        return Result.get().url(url).string()
     }
 
     private fun genHeaders(signKey:String, time:String = Date().time.toString()): HashMap<String, String>? {

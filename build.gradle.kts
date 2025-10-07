@@ -52,6 +52,7 @@ dependencies {
     implementation(compose.ui)
     implementation(compose.uiUtil)
     implementation(compose.uiTooling)
+    testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
 }
 
 tasks.withType<Jar> {
