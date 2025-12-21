@@ -108,6 +108,8 @@ public class Wogg extends Cloud {
         List<String> shareLinks = doc.select(".module-row-text").eachAttr("data-clipboard-text");
         for (int i = 0; i < shareLinks.size(); i++) shareLinks.set(i, shareLinks.get(i).trim());
 
+        System.out.println(shareLinks);
+
         item.setVodPlayUrl(super.detailContentVodPlayUrl(shareLinks));
         item.setVodPlayFrom(super.detailContentVodPlayFrom(shareLinks));
 

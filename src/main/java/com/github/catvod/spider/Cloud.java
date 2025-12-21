@@ -65,10 +65,14 @@ public class Cloud extends Spider {
                     from.add(uc.detailContentVodPlayFrom(ImmutableList.of(shareLink), i));
                 } else if (shareLink.matches(patternQuark) && quark != null) {
                     from.add(quark.detailContentVodPlayFrom(ImmutableList.of(shareLink)));
-                } else if (shareLink.matches(Ali.pattern.pattern()) && ali != null) {
+                } else if (shareLink.matches(Ali.pattern2.pattern()) && ali != null) {
                     from.add(ali.detailContentVodPlayFrom(ImmutableList.of(shareLink)));
+                } else if (shareLink.contains("pan.baidu.com")) {
+                    from.add("百度网盘[不支持播放]");
+                } else if (shareLink.contains("pan.xunlei.com")) {
+                    from.add("迅雷网盘[不支持播放]");
                 } else {
-                    from.add("网盘未配置");
+                    from.add("未知网盘[网盘未配置]");
                 }
             } catch (Exception e) {
                 from.add("解析失败");
@@ -77,11 +81,12 @@ public class Cloud extends Spider {
         return StringUtils.join(from, "$$$");
     }
 
+
     protected String detailContentVodPlayUrl(List<String> shareLinks) throws Exception {
         List<String> urls = new ArrayList<>();
         for (String shareLink : shareLinks) {
-//            try {
-                if (shareLink.matches(Ali.pattern.pattern()) && ali != null) {
+            try {
+                if (shareLink.matches(Ali.pattern2.pattern()) && ali != null) {
                     urls.add(ali.detailContentVodPlayUrl(ImmutableList.of(shareLink)));
                 } else if (shareLink.matches(patternQuark) && quark != null) {
                     urls.add(quark.detailContentVodPlayUrl(ImmutableList.of(shareLink)));
@@ -90,9 +95,9 @@ public class Cloud extends Spider {
                 } else {
                     urls.add("http://error.com/网盘未配置");
                 }
-//            } catch (Exception e) {
-//                urls.add("http://error.com/解析失败: " + e.getMessage());
-//            }
+            } catch (Exception e) {
+                urls.add("http://error.com/解析失败: " + e.getMessage());
+            }
         }
         return StringUtils.join(urls, "$$$");
     }

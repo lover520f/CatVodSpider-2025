@@ -30,14 +30,14 @@ public class ProxyVideo {
     }
 
     public static Object[] proxy(String url, Map<String, String> headers, Map<String, String> overrideRespHeaders) throws Exception {
-        SpiderDebug.log(" ++start proxy:");
-        SpiderDebug.log(" ++proxy url:" + url);
-        SpiderDebug.log(" ++proxy header:" + Json.toJson(headers));
+        SpiderDebug.log("++start proxy:");
+        SpiderDebug.log("++proxy url:" + url);
+        SpiderDebug.log("++proxy header:" + Json.toJson(headers));
 
         Response response = OkHttp.newCall(url, headers);
-        SpiderDebug.log(" ++end proxy:");
-        SpiderDebug.log(" ++proxy res code:" + response.code());
-        SpiderDebug.log(" ++proxy res header:" + Json.toJson(response.headers()));
+        SpiderDebug.log("++end proxy:");
+        SpiderDebug.log("++proxy res code:" + response.code());
+        SpiderDebug.log("++proxy res header:" + Json.toJson(response.headers()));
         //    SpiderDebug.log(" ++proxy res data:" + Json.toJson(response.body()));
         String contentType = response.headers().get("Content-Type");
         String contentDisposition = response.headers().get("Content-Disposition");

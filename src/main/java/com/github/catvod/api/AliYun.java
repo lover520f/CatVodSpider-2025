@@ -64,6 +64,12 @@ public class AliYun {
         m3u8MediaMap = new HashMap<>();
         shareDownloadMap = new HashMap<>();
         cache = Cache.objectFrom(Path.read(getCache()));
+        // 检查是否有有效的token
+        if (cache.getUser().isAuthed()) {
+            SpiderDebug.log("阿里云盘已认证");
+        } else {
+            SpiderDebug.log("阿里云盘未认证");
+        }
     }
 
     public void setRefreshToken(String token) {
@@ -94,18 +100,21 @@ public class AliYun {
 
     private HashMap<String, String> getHeaderOpen() {
         HashMap<String, String> headers = getHeader();
-        headers.put("authorization", cache.getOAuth().getAuthorization());
+        String auth = cache.getOAuth().getAuthorization();
+        System.out.println("auth:" + auth);
+        headers.put("authorization", auth);
         return headers;
     }
 
     private boolean alist(String url, JsonObject param) {
-        String api = "https://api.xhofe.top/alist/ali_open/" + url;
+        String api = "https://api-cf.nn.ci/alist/ali_open/token/" + url;
         OkResult result = OkHttp.post(api, param.toString(), getHeader());
         SpiderDebug.log(result.getCode() + "," + api + "," + result.getBody());
         if (isManyRequest(result.getBody())) return false;
         cache.setOAuth(OAuth.objectFrom(result.getBody()));
         return true;
     }
+
 
     private String post(String url, JsonObject param) {
         url = url.startsWith("https") ? url : "https://api.aliyundrive.com/" + url;
@@ -118,7 +127,7 @@ public class AliYun {
         url = url.startsWith("https") ? url : "https://api.aliyundrive.com/" + url;
         OkResult result = OkHttp.post(url, json, url.contains("file/list") ? getHeaders() : getHeaderAuth());
         SpiderDebug.log(result.getCode() + "," + url + "," + result.getBody());
-        if(result.getBody().contains("TooManyRequests")) Util.notify("阿里： 太多请求, 请稍后再试");
+        if (result.getBody().contains("TooManyRequests")) Util.notify("阿里： 太多请求, 请稍后再试");
         if (retry && result.getCode() == 401 && refreshAccessToken()) return auth(url, json, false);
         if (retry && result.getCode() == 429) return auth(url, json, false);
         return result.getBody();
@@ -156,16 +165,22 @@ public class AliYun {
         if (share.getShareToken().isEmpty()) Util.notify("來晚啦，該分享已失效。");
     }
 
-    private boolean refreshAccessToken() {
+    boolean refreshAccessToken() {
         try {
             SpiderDebug.log("refreshAccessToken...");
             JsonObject param = new JsonObject();
             String token = cache.getUser().getRefreshToken();
             if (token.isEmpty()) token = refreshToken;
             if (token != null && token.startsWith("http")) token = OkHttp.string(token).trim();
+
+            SpiderDebug.log("使用的refreshToken: " + token); // 添加调试日志
+
             param.addProperty("refresh_token", token);
             param.addProperty("grant_type", "refresh_token");
             String json = post("https://auth.aliyundrive.com/v2/account/token", param);
+
+            SpiderDebug.log("账户token刷新响应: " + json);
+
             cache.setUser(User.objectFrom(json));
             if (cache.getUser().getAccessToken().isEmpty()) throw new Exception(json);
             return true;
@@ -207,15 +222,27 @@ public class AliYun {
         JsonObject param = new JsonObject();
         param.addProperty("code", code);
         param.addProperty("grant_type", "authorization_code");
+        param.addProperty("client_id", "");
+        param.addProperty("client_secret", "");
+        SpiderDebug.log("OAuth重定向参数: " + param.toString());
         return alist("code", param);
     }
 
     private boolean refreshOpenToken() {
-        if (cache.getOAuth().getRefreshToken().isEmpty()) return oauthRequest();
+        if (cache.getOAuth().getRefreshToken().isEmpty()) {
+            SpiderDebug.log("OAuth刷新令牌为空，重新请求OAuth");
+            return oauthRequest();
+        }
         SpiderDebug.log("refreshOpenToken...");
         JsonObject param = new JsonObject();
         param.addProperty("grant_type", "refresh_token");
         param.addProperty("refresh_token", cache.getOAuth().getRefreshToken());
+        SpiderDebug.log("OAuth刷新参数: " + param.toString());
+
+        boolean result = alist("token", param);
+
+        SpiderDebug.log("OAuth刷新结果: " + result); // 添加调试日志
+
         return alist("token", param);
     }
 
@@ -225,7 +252,8 @@ public class AliYun {
         param.addProperty("share_id", shareId);
         Share share = Share.objectFrom(post("adrive/v3/share_link/get_share_by_anonymous", param));
 //        if(StringUtils.isNoneBlank(share.getCode()) && share.getCode().equals("ShareLink.Cancelled")) Utils.notify("该分享已取消");
-        if(StringUtils.isNoneBlank(share.getCode()) && share.getCode().equals("TooManyRequests")) Util.notify("阿里："+share.getDisplayMessage());
+        if (StringUtils.isNoneBlank(share.getCode()) && share.getCode().equals("TooManyRequests"))
+            Util.notify("阿里：" + share.getDisplayMessage());
         List<Item> files = new ArrayList<>();
         List<Item> subs = new ArrayList<>();
         listFiles(shareId, new Item(getParentFileId(fileId, share)), files, subs);
@@ -509,7 +537,7 @@ public class AliYun {
         headers.remove(HttpHeaders.ACCEPT_ENCODING);
         headers.remove(HttpHeaders.REFERER);
         headers.remove(HttpHeaders.HOST);
-        headers.computeIfAbsent(HttpHeaders.RANGE, k->"bytes=0-");
+        headers.computeIfAbsent(HttpHeaders.RANGE, k -> "bytes=0-");
         return headers;
     }
 

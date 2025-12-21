@@ -25,8 +25,14 @@ public class PanSearch extends Ali {
     private Map<String, String> getHeader() {
         Map<String, String> header = new HashMap<>();
         header.put("User-Agent", Util.CHROME);
+        header.put("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
+        header.put("Accept-Language", "zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3");
+        header.put("Accept-Encoding", "gzip, deflate");
+        header.put("Connection", "keep-alive");
+        header.put("Upgrade-Insecure-Requests", "1");
         return header;
     }
+
 
     private Map<String, String> getSearchHeader() {
         Map<String, String> header = getHeader();
@@ -38,6 +44,7 @@ public class PanSearch extends Ali {
     @Override
     public String searchContent(String key, boolean quick) throws Exception {
         String html = OkHttp.string(URL, getHeader());
+        System.out.println("DOC " + html);
         String data = Jsoup.parse(html).select("script[id=__NEXT_DATA__]").get(0).data();
         String buildId = new JSONObject(data).getString("buildId");
         String url = URL + "_next/data/" + buildId + "/search.json?keyword=" + URLEncoder.encode(key, Charset.defaultCharset().name()) + "&pan=aliyundrive";

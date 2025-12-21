@@ -6,6 +6,10 @@ import org.json.JSONObject;
 import java.net.URLEncoder;
 import java.util.Map;
 
+/**
+ * Mtyy Parser 2025/07/
+ * */
+
 public class VideoUrlParser {
 
     public static String getVideoUrl(String inputUrl, Map<String, String> header) {

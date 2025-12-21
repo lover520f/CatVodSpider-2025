@@ -62,7 +62,6 @@ public class HkTv extends Spider {
             classes.add(new Class(typeIdList[i], typeNameList[i]));
         }
         Document doc = Jsoup.parse(OkHttp.string(siteUrl, getHeaders()));
-        System.out.println(doc);
         for (Element element : doc.select("a.myui-vodlist__thumb")) {
             try {
                 String pic = element.attr("data-original");

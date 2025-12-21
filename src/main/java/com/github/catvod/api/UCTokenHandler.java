@@ -170,7 +170,7 @@ public class UCTokenHandler {
 
         OkResult okResult = OkHttp.get(API_URL + pathname, params, headers);
 
-//扫码成功
+        //扫码成功
         if (okResult.getCode() == 200) {
             JsonObject resData = Json.safeObject(okResult.getBody());
             String code = resData.get("code").getAsString();

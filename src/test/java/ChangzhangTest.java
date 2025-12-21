@@ -32,7 +32,7 @@ public class ChangzhangTest {
 
         //String palyDoc= OkHttp.string("http://www.lzizy9.com/index.php/vod/play/id/79816/sid/1/nid/1.html");
 
-        String s = douban.categoryContent("/zuixindianying", "1", false, Maps.newHashMap());
+        String s = douban.categoryContent("zuixindianying", "1", false, Maps.newHashMap());
         System.out.println(s);
         AssertUtil.INSTANCE.assertResult(s);
 

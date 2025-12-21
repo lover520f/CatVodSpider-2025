@@ -65,7 +65,6 @@ public class QuarkApi {
     }
 
 
-
     /**
      * 代理m3u8
      *
@@ -266,12 +265,13 @@ public class QuarkApi {
 
             //extend没有cookie，从缓存中获取
             if (StringUtils.isAllBlank(cookie)) {
-                SpiderDebug.log(" cookie from ext is empty...");
+                SpiderDebug.log("cookie from ext is empty...");
                 cookie = cache.getUser().getCookie();
+                SpiderDebug.log("cache cookie:" + cookie);
             }
             //获取到cookie，初始化quark，并且把cookie缓存一次
             if (StringUtils.isNoneBlank(cookie) && cookie.contains("__pus")) {
-                SpiderDebug.log(" initQuark ...");
+                SpiderDebug.log("initQuark ...");
                 initQuark(this.cookie);
                 cache.setUser(User.objectFrom(this.cookie));
                 return;
@@ -318,6 +318,7 @@ public class QuarkApi {
      *
      * @return 返回包含二维码登录令牌的字符串
      */
+    @SuppressWarnings("unchecked")
     private String getTokenForQrcodeLogin() {
         Map<String, String> params = new HashMap<>();
         params.put("client_id", "386");
@@ -363,7 +364,7 @@ public class QuarkApi {
         }
         return null;
     }
-
+    @SuppressWarnings("unchecked")
     private boolean getVip() throws Exception {
         Map<String, Object> listData = Json.parseSafe(api("member?pr=ucpro&fr=pc&uc_param_str=&fetch_subscribe=true&_ch=home&fetch_identity=true", null, null, 0, "GET"), Map.class);
         return ((Map<String, String>) listData.get("data")).get("member_type").contains("VIP");
@@ -385,7 +386,7 @@ public class QuarkApi {
             return Collections.singletonList("low");
         }
     }
-
+    @SuppressWarnings("unchecked")
     private void getShareToken(ShareData shareData) throws Exception {
         if (!this.shareTokenCache.containsKey(shareData.getShareId())) {
             this.shareTokenCache.remove(shareData.getShareId());
@@ -395,7 +396,7 @@ public class QuarkApi {
             }
         }
     }
-
+    @SuppressWarnings("unchecked")
     private List<Map<String, Object>> listFile(int shareIndex, ShareData shareData, List<Item> videos, List<Item> subtitles, String shareId, String folderId, Integer page) throws Exception {
         int prePage = 200;
         page = page != null ? page : 1;
@@ -505,7 +506,7 @@ public class QuarkApi {
         finalResult.put("bestMatchIndex", bestMatchIndex);
         return finalResult;
     }
-
+    @SuppressWarnings("unchecked")
     public void getFilesByShareUrl(int shareIndex, String shareInfo, List<Item> videos, List<Item> subtitles) throws Exception {
         ShareData shareData = getShareData((String) shareInfo);
         if (shareData == null) return;
@@ -525,19 +526,94 @@ public class QuarkApi {
     private void clean() {
         saveFileIdCaches.clear();
     }
-
+    @SuppressWarnings("unchecked")
     private void clearSaveDir() throws Exception {
+        SpiderDebug.log("开始清理保存目录: " + this.saveDirId);
 
         Map<String, Object> listData = Json.parseSafe(api("file/sort?" + this.pr + "&pdir_fid=" + this.saveDirId + "&_page=1&_size=200&_sort=file_type:asc,updated_at:desc", Collections.emptyMap(), Collections.emptyMap(), 0, "GET"), Map.class);
+
         if (listData.get("data") != null && ((List<Map<String, Object>>) ((Map<String, Object>) listData.get("data")).get("list")).size() > 0) {
+            SpiderDebug.log("发现目录中有文件，准备删除");
             List<String> list = new ArrayList<>();
             for (Map<String, Object> stringStringMap : ((List<Map<String, Object>>) ((Map<String, Object>) listData.get("data")).get("list"))) {
                 list.add((String) stringStringMap.get("fid"));
             }
-            api("file/delete?" + this.pr, Collections.emptyMap(), ImmutableMap.of("action_type", "2", "filelist", Json.toJson(list), "exclude_fids", ""), 0, "POST");
+            SpiderDebug.log("待删除文件列表: " + list);
+            Map<String, Object> deletePayload = ImmutableMap.of(
+                    "action_type", 2,
+                    "filelist", list,
+                    "exclude_fids", Collections.emptyList()
+            );
+            SpiderDebug.log("即将发送的删除请求体: " + Json.toJson(deletePayload));
+            // 发送删除请求并检查返回结果
+            String deleteResult = api("file/delete?" + this.pr, Collections.emptyMap(), deletePayload, 0, "POST");
+            SpiderDebug.log("文件删除请求返回结果: " + deleteResult);
+
+            // 解析删除结果并轮询任务状态
+            try {
+                Map<String, Object> deleteResponse = Json.parseSafe(deleteResult, Map.class);
+                if (deleteResponse.containsKey("data") && deleteResponse.get("data") != null) {
+                    Map<String, Object> data = (Map<String, Object>) deleteResponse.get("data");
+                    if (data.containsKey("task_id")) {
+                        String taskId = (String) data.get("task_id");
+                        SpiderDebug.log("删除任务ID: " + taskId + ", 开始轮询任务状态");
+
+                        // 轮询任务状态
+                        int retry = 0;
+                        while (retry < 5) {
+                            Thread.sleep(500);
+                            Map<String, Object> taskResult = Json.parseSafe(api("task?" + this.pr + "&task_id=" + taskId + "&retry_index=" + retry, Collections.emptyMap(), Collections.emptyMap(), 0, "GET"), Map.class);
+                            SpiderDebug.log("任务状态查询结果: " + taskResult);
+
+                            // 检查API调用是否成功
+                            if (taskResult.containsKey("status")) {
+                                Object apiStatusObj = taskResult.get("status");
+                                String apiStatus = apiStatusObj.toString();
+
+                                // API调用失败（如500错误）
+                                if ("500.0".equals(apiStatus) || apiStatus.startsWith("5")) {
+                                    SpiderDebug.log("API调用失败，状态码: " + apiStatus);
+                                    break;
+                                }
+
+                                // API调用成功，检查任务状态
+                                if ("200.0".equals(apiStatus) || apiStatus.startsWith("2")) {
+                                    if (taskResult.containsKey("data") && taskResult.get("data") != null) {
+                                        Map<String, Object> taskData = (Map<String, Object>) taskResult.get("data");
+                                        if (taskData.containsKey("status")) {
+                                            Object taskStatusObj = taskData.get("status");
+                                            String taskStatus = taskStatusObj.toString();
+
+                                            // 任务成功完成 (status=2.0 表示任务成功)
+                                            if ("2.0".equals(taskStatus)) {
+                                                SpiderDebug.log("文件删除成功");
+                                                break;
+                                            }
+                                            // 任务失败 (status=3.0 表示任务失败)
+                                            else if ("3.0".equals(taskStatus)) {
+                                                SpiderDebug.log("文件删除失败");
+                                                break;
+                                            }
+                                            // 其他状态继续轮询
+                                        }
+                                    }
+                                }
+                            }
+                            retry++;
+                        }
+                    }
+                } else {
+                    SpiderDebug.log("文件删除可能失败，返回数据: " + deleteResponse);
+                }
+            } catch (Exception e) {
+                SpiderDebug.log("解析删除结果时出错: " + e.getMessage());
+            }
+        } else {
+            SpiderDebug.log("目录为空或不存在，无需清理");
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void createSaveDir(boolean clean) throws Exception {
         if (this.saveDirId != null) {
             if (clean) clearSaveDir();
@@ -561,11 +637,12 @@ public class QuarkApi {
             }
         }
     }
-
+    @SuppressWarnings("unchecked")
     private String save(String shareId, String stoken, String fileId, String fileToken, boolean clean) throws Exception {
         SpiderDebug.log("转存文件 -> shareId=" + shareId + ", fileId=" + fileId + ", fileToken=" + fileToken);
         createSaveDir(clean);
         if (clean) {
+            SpiderDebug.log("Quark-清空本地缓存表");
             clean();
         }
 
@@ -650,7 +727,7 @@ public class QuarkApi {
         return null;
     }
 
-
+    @SuppressWarnings("unchecked")
     private String getLiveTranscoding(String shareId, String stoken, String fileId, String fileToken, String flag) throws Exception {
         SpiderDebug.log("获取转码地址 -> shareId=" + shareId + ", stoken=" + stoken + ", fileId=" + fileId + ", fileToken=" + fileToken + ", flag=" + flag);
         if (!this.saveFileIdCaches.containsKey(fileId)) {
@@ -668,20 +745,41 @@ public class QuarkApi {
         }
 
         Map<String, Object> transcoding = Json.parseSafe(api("file/v2/play?" + this.pr, Collections.emptyMap(), ImmutableMap.of("fid", this.saveFileIdCaches.get(fileId), "resolutions", "normal,low,high,super,2k,4k", "supports", "fmp4"), 0, "POST"), Map.class);
+        SpiderDebug.log("转码接口返回数据: " + transcoding); // 添加转码接口返回的完整数据日志
+
         if (transcoding.get("data") != null && ((Map<Object, Object>) transcoding.get("data")).get("video_list") != null) {
             String flagId = flag.split("-")[flag.split("-").length - 1];
+            SpiderDebug.log("请求的清晰度标识: " + flagId); // 记录请求的清晰度标识
+
             int index = findAllIndexes(getPlayFormatList(), flagId);
+            SpiderDebug.log("匹配的清晰度索引: " + index); // 记录匹配到的索引
+
             String quarkFormat = getPlayFormatQuarkList().get(index);
-            for (Map<String, Object> video : (List<Map<String, Object>>) ((Map<Object, Object>) transcoding.get("data")).get("video_list")) {
+            SpiderDebug.log("对应的夸克格式: " + quarkFormat); // 记录对应的夸克格式
+
+            List<Map<String, Object>> videoList = (List<Map<String, Object>>) ((Map<Object, Object>) transcoding.get("data")).get("video_list");
+            SpiderDebug.log("可用的转码列表: " + videoList); // 记录所有可用的转码格式
+
+            for (Map<String, Object> video : videoList) {
                 if (video.get("resolution").equals(quarkFormat)) {
-                    return (String) ((Map<String, Object>) video.get("video_info")).get("url");
+                    String url = (String) ((Map<String, Object>) video.get("video_info")).get("url");
+                    SpiderDebug.log("找到匹配的转码URL: " + url); // 记录找到的URL
+                    return url;
                 }
             }
-            return (String) ((Map<String, Object>) ((List<Map<String, Object>>) ((Map<Object, Object>) transcoding.get("data")).get("video_list")).get(index).get("video_info")).get("url");
+
+            // 备选方案日志
+            SpiderDebug.log("未找到匹配的转码格式，使用索引位置的备选方案");
+            String fallbackUrl = (String) ((Map<String, Object>) ((List<Map<String, Object>>) ((Map<Object, Object>) transcoding.get("data")).get("video_list")).get(index).get("video_info")).get("url");
+            SpiderDebug.log("备选方案URL: " + fallbackUrl);
+            return fallbackUrl;
+        } else {
+            SpiderDebug.log("转码数据不完整或为空"); // 当转码数据不完整时记录
         }
+
         return null;
     }
-
+    @SuppressWarnings("unchecked")
     private String getDownload(String shareId, String stoken, String fileId, String fileToken, boolean clean) throws Exception {
         if (!this.saveFileIdCaches.containsKey(fileId)) {
             String saveFileId = save(shareId, stoken, fileId, fileToken, clean);

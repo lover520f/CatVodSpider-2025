@@ -1,9 +1,9 @@
 {
-  "spider": "../jar/spider.jar;md5;67f18bec20bf154f8136d573fbaece50",
+  "spider": "../jar/spider.jar;md5;e63edc06f5e197b825832007694909c3",
   "sites": [
     {
       "key": "Intruduce",
-      "name": "验证设置",
+      "name": "网盘登录",
       "type": 3,
       "api": "csp_Introduce",
       "searchable": 0,
@@ -40,7 +40,7 @@
     },
     {
       "key": "NCat",
-      "name": "网飞猫 | 影视",
+      "name": "网飞猫|影视",
       "type": 3,
       "api": "csp_NCat",
       "searchable": 1,
@@ -142,7 +142,7 @@
     },
     {
       "key": "glod",
-      "name": "金牌 | 影视",
+      "name": "金牌|影视",
       "type": 3,
       "api": "csp_Glod",
       "searchable": 0,
@@ -173,7 +173,7 @@
     },
     {
       "key": "JustLive",
-      "name": "JustLive | 直播",
+      "name": "JustLive|直播",
       "type": 3,
       "api": "csp_JustLive",
       "searchable": 1,
@@ -257,7 +257,7 @@
     },
     {
       "key": "PanSearch",
-      "name": "PanSearch┃搜索",
+      "name": "PanSearch┃海外",
       "type": 3,
       "api": "csp_PanSearch",
       "searchable": 1,
@@ -330,6 +330,15 @@
       "name": "电影云集",
       "type": 3,
       "api": "csp_DianYingYunJi",
+      "searchable": 1,
+      "changeable": 1,
+      "ext": {}
+    },
+    {
+      "key": "ReBoYingShi",
+      "name": "热播影视4k",
+      "type": 3,
+      "api": "csp_ReBoYingShi",
       "searchable": 1,
       "changeable": 1,
       "ext": {}

@@ -8,11 +8,14 @@ class AigaTest:TestInterface<Aiga> {
     @Test
     override fun homeTest() {
         val homeContent = t.homeContent(false)
+        println(homeContent)
         assert(homeContent)
     }
 
+    @Test
     override fun cateTest() {
-        TODO("Not yet implemented")
+        val cateContent = t.categoryContent("1", "1", false, null)
+        println(cateContent)
     }
 
     override fun detailTest() {

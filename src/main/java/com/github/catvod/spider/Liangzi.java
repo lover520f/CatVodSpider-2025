@@ -53,17 +53,54 @@ public class Liangzi extends Spider {
 
     private @NotNull List<Vod> getVodList(Document doc) {
         List<Vod> list = new ArrayList<>();
+
+        // 优先处理视频列表区域，而非轮播图
         for (Element div : doc.select(".module-item")) {
             String id = siteUrl + div.attr("href");
             String name = div.select(".module-item-pic > img").attr("alt");
-            String pic = div.select(".module-item-pic > img").attr("src");
-            if (pic.isEmpty()) pic = div.select("img").attr("src");
+            // 优先使用 data-original 属性获取封面图
+            String pic = div.select(".module-item-pic > img").attr("data-original");
+            if (pic.isEmpty()) {
+                pic = div.select(".module-item-pic > img").attr("src");
+            }
+            if (pic.isEmpty()) {
+                pic = div.select("img").attr("src");
+            }
             String remark = div.select(".module-item-note").text();
 
             list.add(new Vod(id, name, pic, remark));
         }
+
+        // 如果没有找到 .module-item 元素，再尝试处理轮播图（作为备选）
+        if (list.isEmpty()) {
+            for (Element div : doc.select(".swiper-slide")) {
+                Element linkElement = div.select("a.banner").first();
+                if (linkElement != null) {
+                    String id = siteUrl + linkElement.attr("href");
+                    String name = div.select(".mobile-v-info .v-title span").text();
+                    // 背景图片在style属性中
+                    String style = linkElement.attr("style");
+                    String pic = "";
+                    if (style.contains("url(")) {
+                        int start = style.indexOf("url(") + 4;
+                        int end = style.indexOf(")", start);
+                        pic = style.substring(start, end);
+                        // 处理可能存在的引号
+                        if (pic.startsWith("'") || pic.startsWith("\"")) {
+                            pic = pic.substring(1, pic.length() - 1);
+                        }
+                    }
+                    String remark = div.select(".mobile-v-info .v-ins p").first().text();
+
+                    list.add(new Vod(id, name, pic, remark));
+                }
+            }
+        }
+
         return list;
     }
+
+
 
     @Override
     public String categoryContent(String tid, String pg, boolean filter, HashMap<String, String> extend) throws Exception {
@@ -85,67 +122,29 @@ public class Liangzi extends Spider {
 
     @Override
     public String detailContent(List<String> ids) throws Exception {
-/*        SpiderDebug.log("---------detailContent-ids" + Json.toJson(ids));
-        String vodId = ids.get(0);
-        String detailUrl = vodId;
-        Document doc = Jsoup.parse(OkHttp.string(detailUrl));
-        Elements circuits = doc.select(".module-tab-item.tab-item");
-        Elements sources = doc.select("[class=scroll-content]");
-        StringBuilder vod_play_url = new StringBuilder();
-        StringBuilder vod_play_from = new StringBuilder();
-        for (int i = 0; i < sources.size(); i++) {
-            String spanText = circuits.get(i).select("span").text();
-            String smallText = circuits.get(i).select("small").text();
-            String playFromText = spanText + "(共" + smallText + "集)";
-            vod_play_from.append(playFromText).append("$$$");
-            Elements aElementArray = sources.get(i).select("a");
-            for (int j = 0; j < aElementArray.size(); j++) {
-                Element a = aElementArray.get(j);
-                String href = siteUrl + a.attr("href");
-                String text = a.text();
-                vod_play_url.append(text).append("$").append(href);
-                boolean notLastEpisode = j < aElementArray.size() - 1;
-                vod_play_url.append(notLastEpisode ? "#" : "$$$");
-            }
-        }
-        String title = doc.select("#main > div > div.box.view-heading > div.video-info > div.video-info-header > h1").text();
-        String director = doc.select("#main > div > div.box.view-heading > div.video-info > div.video-info-main > div:nth-child(1) > div > a").text();
-        String actor = doc.select("#main > div > div.box.view-heading > div.video-info > div.video-info-main > div:nth-child(2) > div > a").text();
-        String year = doc.select("#main > div > div.box.view-heading > div.video-info > div.video-info-main > div:nth-child(3) > div").text();
-        String vodPic = doc.select("#main > div > div.box.view-heading > div.video-cover > div > div > img").attr("data-src");
-        String id = doc.select("#main > div > div.box.view-heading > div.video-info > div.video-info-header > a.btn-important.btn-large.shadow-drop.video-info-play").attr("href");
-        String playUrl = doc.select("#main > div > div.box.view-heading > div.video-info > div.video-info-header > a.btn-important.btn-large.shadow-drop.video-info-play").attr("href");
-        String palyDoc = OkHttp.string(siteUrl + playUrl);
-        JsonObject vodInfo = Json.parse(ReUtil.findAll("var player_aaaa=(.*?)</script>", palyDoc, 1).get(0)).getAsJsonObject();
-        String player = OkHttp.string(vodInfo.get("url").getAsString());
-        String playerSource = ReUtil.findAll("var main = \"(.*?)\";", player, 1).get(0);
-        URI host = URLUtil.getHost(new URL(vodInfo.get("url").getAsString()));
-
-        SpiderDebug.log("++++++++++++++++++++detailContent-vodInfo" + Json.toJson(vodInfo));
-        JsonElement vodData = vodInfo.get("vod_data");
-        Vod vod = new Vod();
-        vod.setVodDirector(director);
-        vod.setVodActor(vodData != null ? vodData.getAsJsonObject().get("vod_actor").getAsString() : "");
-        vod.setTypeName(vodData != null ? vodData.getAsJsonObject().get("vod_class").getAsString() : "");
-        vod.setVodYear(year);
-        vod.setVodId(vodId);
-        vod.setVodName(title);
-        vod.setVodPic(vodPic);
-        vod.setVodPlayUrl(vod_play_url.toString());
-        vod.setVodPlayFrom(vod_play_from.toString());
-        SpiderDebug.log("++++++++++++++++++++detailContent-vod" + Json.toJson(vod));
-        return Result.string(vod);*/
         SpiderDebug.log("++++++++++++量子-detailContent--args" + Json.toJson(ids));
         Document doc = Jsoup.parse(OkHttp.string(ids.get(0), getHeader()));
+
+        String title = doc.select("div.module-info-heading h1").text();
+        String year = doc.select("div.module-info-tag-link").first().text();
+        String area = doc.select("div.module-info-tag-link").eq(1).text();
+        String director = doc.select("div.module-info-item:contains(导演：) a").text();
+        String actor = doc.select("div.module-info-item:contains(主演：) a").text();
+        String brief = doc.select("div.module-info-introduction-content p").text();
+        String pic = doc.select("div.module-item-pic img").attr("data-original");
+
         Elements circuits = doc.select(".module-tab-item.tab-item");
-        Elements sources = doc.select("[class=scroll-content]");
+        Elements sources = doc.select(".module-list, .module-blocklist, .module-player .scroll-content, .scroll-content");
+
         StringBuilder vod_play_url = new StringBuilder();
         StringBuilder vod_play_from = new StringBuilder();
+
         for (int i = 0; i < sources.size(); i++) {
             String spanText = circuits.get(i).select("span").text();
             String smallText = circuits.get(i).select("small").text();
             String playFromText = spanText + "(共" + smallText + "集)";
             vod_play_from.append(playFromText).append("$$$");
+
             Elements aElementArray = sources.get(i).select("a");
             for (int j = 0; j < aElementArray.size(); j++) {
                 Element a = aElementArray.get(j);
@@ -156,36 +155,23 @@ public class Liangzi extends Spider {
                 vod_play_url.append(notLastEpisode ? "#" : "$$$");
             }
         }
-        String title = doc.select(".module-info-heading h1").text();
-//        String classifyName = doc.select("div.tag-link a").text();
-        String year = doc.select(".module-info-tag-link").eq(1).text();
-        String area = doc.select(".module-info-tag-link").eq(2).text();
-        Elements select = doc.select(".module-info-item");
 
-        String remark = doc.select("div.title-info span").text();
-        String vodPic = doc.select("#main > div > div.box.view-heading > div.video-cover > div > div > img").attr("data-src");
-
-        String director = doc.select("#main > div > div.box.view-heading > div.video-info > div.video-info-main > div:nth-child(1) > div > a").text();
-
-        String actor = doc.select("#main > div > div.box.view-heading > div.video-info > div.video-info-main > div:nth-child(2) > div > a").text();
-
-        String brief = "";
         Vod vod = new Vod();
         vod.setVodId(ids.get(0));
         vod.setVodYear(year);
         vod.setVodName(title);
         vod.setVodArea(area);
         vod.setVodActor(actor);
-        vod.setVodPic(vodPic);
-        vod.setVodRemarks(remark);
+        vod.setVodPic(pic);
         vod.setVodContent(brief);
         vod.setVodDirector(director);
-//        vod.setTypeName(classifyName);
         vod.setVodPlayFrom(vod_play_from.toString());
         vod.setVodPlayUrl(vod_play_url.toString());
+
         SpiderDebug.log("++++++++++++量子-detailContent" + Json.toJson(vod));
         return Result.string(vod);
     }
+
 
     @Override
     public String searchContent(String key, boolean quick) throws Exception {
@@ -194,19 +180,25 @@ public class Liangzi extends Spider {
         Document document = Jsoup.parse(html);
         List<Vod> list = new ArrayList<>();
 
+        // 使用新的选择器匹配搜索结果项
+        for (Element div : document.select(".module-card-item")) {
+            String vodId = siteUrl + div.select("a").first().attr("href");
+            String name = div.select(".module-card-item-title a").text();
+            String remark = div.select(".module-item-note").text();
+            String pic = div.select(".module-item-pic img").attr("data-original");
 
-        for (Element div : document.select(".module-search-item")) {
+            // 如果data-original为空，尝试其他属性
+            if (pic.isEmpty()) {
+                pic = div.select(".module-item-pic img").attr("src");
+            }
 
-            String vodId = siteUrl + div.select(".video-serial").attr("href");
-            String name = div.select(".video-info-header > a").attr("title");
-            String remark = div.select(".tag-link > a").text();
-            String pic = div.select("img").attr("data-src");
             list.add(new Vod(vodId, name, pic, remark));
         }
 
         SpiderDebug.log("++++++++++++量子-searchContent" + Json.toJson(list));
         return Result.string(list);
     }
+
 
     @Override
     public String playerContent(String flag, String id, List<String> vipFlags) throws Exception {

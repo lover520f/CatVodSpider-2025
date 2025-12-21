@@ -70,7 +70,6 @@ public class UCApi {
     /* cookieToken = qrCodeHandler.startUC_TOKENScan();
              SpiderDebug.log("扫码登录获取到的cookieToken: " + cookieToken);*/
 
-
     private UCApi() {
         qrCodeHandler = new UCTokenHandler();
         cache = Cache.objectFrom(Path.read(getCache()));
@@ -222,7 +221,7 @@ public class UCApi {
 
         //UCTV 可以直接播放，不需要代理
         if (testVideo(playUrl)) {
-            SpiderDebug.log("UCTV 可以直接播放，不需要代理" );
+            SpiderDebug.log("UCTV 可以直接播放，不需要代理");
 
             return Result.get().url(playUrl).string();
         }
@@ -321,8 +320,12 @@ public class UCApi {
         if ("GET".equals(method)) {
             okResult = OkHttp.get(this.apiUrl + url, params, getHeaders());
         } else {
+            SpiderDebug.log("[UC]发送POST请求: " + this.apiUrl + url + ", 数据: " + Json.toJson(data));
             okResult = OkHttp.post(this.apiUrl + url, Json.toJson(data), getHeaders());
         }
+
+        SpiderDebug.log("[UC]API响应状态码: " + okResult.getCode() + ", 响应内容: " + okResult.getBody());
+
         if (okResult.getResp().get("Set-Cookie") != null) {
             Matcher matcher = Pattern.compile("__puus=([^;]+)").matcher(Util.stringJoin(okResult.getResp().get("Set-Cookie"), ";;;"));
             if (matcher.find()) {
@@ -629,16 +632,52 @@ public class UCApi {
     }
 
     private void clearSaveDir() throws Exception {
-
+        SpiderDebug.log("[UC]开始清理保存目录: " + this.saveDirId);
         Map<String, Object> listData = Json.parseSafe(api("file/sort?" + this.pr + "&pdir_fid=" + this.saveDirId + "&_page=1&_size=200&_sort=file_type:asc,updated_at:desc", Collections.emptyMap(), Collections.emptyMap(), 0, "GET"), Map.class);
+        SpiderDebug.log("[UC]共有文件: " + ((List<Map<String, Object>>) ((Map<String, Object>) listData.get("data")).get("list")).size());
         if (listData.get("data") != null && ((List<Map<String, Object>>) ((Map<String, Object>) listData.get("data")).get("list")).size() > 0) {
             List<String> list = new ArrayList<>();
             for (Map<String, Object> stringStringMap : ((List<Map<String, Object>>) ((Map<String, Object>) listData.get("data")).get("list"))) {
                 list.add((String) stringStringMap.get("fid"));
             }
-            api("file/delete?" + this.pr, Collections.emptyMap(), Map.of("action_type", "2", "filelist", Json.toJson(list), "exclude_fids", ""), 0, "POST");
+            SpiderDebug.log("[UC]准备删除文件: " + list);
+
+            // 只调用一次api方法
+            String deleteResult = api("file/delete?" + this.pr, Collections.emptyMap(),
+                    Map.of("action_type", "2", "filelist", list, "exclude_fids", new ArrayList<>()), 0, "POST");
+            SpiderDebug.log("[UC]删除文件结果: " + deleteResult);
+
+            // 解析删除结果 - 修改判断条件
+            Map<String, Object> deleteResponse = Json.parseSafe(deleteResult, Map.class);
+            // 修改判断条件：正确处理数值类型的比较
+            if (deleteResponse.containsKey("code")) {
+                Object codeObj = deleteResponse.get("code");
+                // 处理不同数值类型的比较
+                boolean isSuccess = false;
+                if (codeObj instanceof Number) {
+                    isSuccess = ((Number) codeObj).intValue() == 0;
+                } else if (codeObj instanceof String) {
+                    isSuccess = "0".equals(codeObj) || "200".equals(codeObj);
+                }
+
+                if (isSuccess) {
+                    SpiderDebug.log("[UC]文件删除请求成功");
+                    // 如果有task_id，可能需要等待任务完成
+                    if (deleteResponse.containsKey("data")) {
+                        Map<String, Object> data = (Map<String, Object>) deleteResponse.get("data");
+                        if (data.containsKey("task_id")) {
+                            SpiderDebug.log("[UC]删除任务ID: " + data.get("task_id"));
+                        }
+                    }
+                } else {
+                    SpiderDebug.log("[UC]文件删除失败，错误信息: " + deleteResponse);
+                }
+            } else {
+                SpiderDebug.log("[UC]文件删除失败，响应中无code字段: " + deleteResponse);
+            }
         }
     }
+
 
     private void createSaveDir(boolean clean) throws Exception {
         if (this.saveDirId != null) {

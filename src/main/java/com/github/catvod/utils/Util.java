@@ -227,7 +227,7 @@ public class Util {
         jPanel.setLayout(new BoxLayout(jPanel, BoxLayout.Y_AXIS));
         jPanel.setBackground(Color.darkGray);
 
-        JLabel jLabel = new JLabel(String.format("TV-%s", title));
+        JLabel jLabel = new JLabel(String.format("Lumen TV-%s", title));
         jLabel.setAlignmentX(JLabel.CENTER);
         jLabel.setBackground(Color.DARK_GRAY);
         jLabel.setForeground(Color.white);

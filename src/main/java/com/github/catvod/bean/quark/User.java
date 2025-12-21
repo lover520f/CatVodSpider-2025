@@ -25,6 +25,5 @@ public class User {
 
     public void clean() {
         this.cookie = "";
-
     }
 }

@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
 /**
  * @author zhixc
  */
+// 和谐
 public class Mogg extends Cloud {
 
     private final String siteUrl = "https://woog.nxog.eu.org";

@@ -345,10 +345,31 @@ class BD : Spider() {
                 if (url.contains("god")) {
                     val t = Date().time
                     val p = mutableMapOf("t" to t, "sg" to getSg(id, t.toString()), "verifyCode" to "888")
-                    val body = OkHttp.post("${host}god", Json.toJson(p), Util.webHeaders(host, cookie)).body
-                    SpiderDebug.log("DB god req:$body")
-                    url = Json.get().toJsonTree(body).asJsonObject.get("url").asString
+                    val response = OkHttp.post("${host}god", Json.toJson(p), Util.webHeaders(host, cookie))
+
+                    // 使用响应码判断请求是否成功（替代 isSuccessful）
+                    if (response.code in 200..<300 && response.body != null) {
+                        try {
+                            val jsonElement = Json.get().toJsonTree(response.body)
+                            if (jsonElement.isJsonObject) {
+                                val jsonObject = jsonElement.asJsonObject
+                                if (jsonObject.has("url")) {
+                                    url = jsonObject.get("url").asString
+                                } else {
+                                    SpiderDebug.log("BD god response does not contain 'url' field")
+                                }
+                            } else {
+                                SpiderDebug.log("BD god response is not a JSON object")
+                            }
+                        } catch (e: Exception) {
+                            SpiderDebug.log("BD god JSON parsing error: " + ExceptionUtil.stacktraceToString(e))
+                        }
+                    } else {
+                        SpiderDebug.log("BD god request failed with status: ${response.code}")
+                    }
                 }
+
+
                 return ProxyVideo.ProxyRespBuilder.redirect(url)
             } catch (e: Exception) {
                 SpiderDebug.log("bd proxy error: " + ExceptionUtil.stacktraceToString(e))

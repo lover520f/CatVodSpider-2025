@@ -14,7 +14,7 @@ https://github.com/mymine/CatVodSpider
 
 # 声明
 
-专用于LumenTV Compose项目, 无法包含安卓相关包，所以在改动中移除了相关代码
+专用于LumenTV Compose项目,无法包含安卓相关包,所以在改动中移除了相关代码
 
 欢迎PR
 
