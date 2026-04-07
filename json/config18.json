@@ -1,0 +1,30 @@
+{
+  "spider": "../jar/spider.jar;md5;4fb3b4cc7c67d86c3cf7012f30d60d2e",
+  "sites": [
+    {
+      "key": "J91",
+      "name": "🔞 91 | 珍惜",
+      "type": 3,
+      "api": "csp_J91",
+      "searchable": 1,
+      "filterable": 1
+    },
+    {
+      "key": "Cg51",
+      "name": "🔞 51吃瓜 | 图密√",
+      "type": 3,
+      "api": "csp_Cg51",
+      "searchable": 1,
+      "filterable": 1
+    },
+    {
+      "key": "zp024",
+      "name": "🔞BT天堂-伦理",
+      "type": 0,
+      "api": "http://bttcj.com/inc/sapi.php",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0
+    }
+  ]
+}

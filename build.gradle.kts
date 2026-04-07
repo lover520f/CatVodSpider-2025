@@ -68,7 +68,7 @@ tasks.withType<Jar> {
 }
 
 fun modJson() {
-    val files = listOf("$rootDir/json/config.json", "$rootDir/json/configAll.json")
+    val files = listOf("$rootDir/json/config.json", "$rootDir/json/configAll.json", "$rootDir/json/config18.json")
     val gson = GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create()
     for (file in files) {
         if (!File(file).exists()) return

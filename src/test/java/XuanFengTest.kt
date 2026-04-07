@@ -19,13 +19,13 @@ class XuanFengTest:TestInterface<XuanFeng> {
 
     @Test
     override fun detailTest() {
-        val detailContent = t.detailContent(listOf("/video/A2KcAnaiCABmA9eeTYL2Vj"))
+        val detailContent = t.detailContent(listOf("/video/FcMutXUMqP43BzbbB9YxUh"))
         assert(detailContent)
     }
 
     @Test
     override fun playTest() {
-        val playerContent = t.playerContent("", "/video/A2KcAnaiCABmA9eeTYL2Vj", listOf())
+        val playerContent = t.playerContent("", "/video/FcMutXUMqP43BzbbB9YxUh", listOf())
         assert(playerContent)
     }
 
